@@ -29,13 +29,14 @@ jobs:
               id: build-image
               run: |
                   # Build a docker container and push it to ECR 
-                  aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin $ECR_REGISTRY
-                  docker build -t ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest .
+                  echo "Registry: ${{ vars.ECR_REGISTRY }}"
+                  aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin ${{ vars.ECR_REGISTRY }}
+                  docker build -t ${{ vars.ECR_REGISTRY }}/${{ vars.ECR_REPOSITORY }}:latest .
                   echo "Pushing image to ECR..."
-                  docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest
-                  echo "name=image::${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest" >> $GITHUB_OUTPUT
+                  docker push ${{ vars.ECR_REGISTRY }}/${{ vars.ECR_REPOSITORY }}:latest
+                  echo "name=image::${{ vars.ECR_REGISTRY }}/${{ vars.ECR_REPOSITORY }}:latest" >> $GITHUB_OUTPUT
 
             - name: Update AWS Lambda function
               id: update-lambda
               run: |
-                  aws lambda update-function-code --function-name ${{ env.LAMBDA_FUNCTION_NAME }} --image-uri ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest
+                  aws lambda update-function-code --function-name ${{ vars.LAMBDA_FUNCTION_NAME }} --image-uri ${{ vars.ECR_REGISTRY }}/${{ vars.ECR_REPOSITORY }}:latest
