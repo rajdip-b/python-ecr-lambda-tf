@@ -1,0 +1,41 @@
+on:
+    push:
+        branches: [master]
+
+name: Lambda ECR Deployment
+
+jobs:
+    deploy:
+        if: github.ref == 'refs/heads/master'
+        name: Deploy to ECR and update Lambda
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v2
+
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@v1
+              with:
+                  aws-access-key-id: ${{ secrets.ACCESS_KEY }}
+                  aws-secret-access-key: ${{ secrets.SECRET_KEY }}
+                  aws-region: ap-south-1
+
+            - name: Login to Amazon ECR
+              id: login-ecr
+              uses: aws-actions/amazon-ecr-login@v1
+
+            - name: Build, tag, and push the image to Amazon ECR
+              id: build-image
+              run: |
+                  # Build a docker container and push it to ECR 
+                  aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin $ECR_REGISTRY
+                  docker build -t ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest .
+                  echo "Pushing image to ECR..."
+                  docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest
+                  echo "name=image::${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest" >> $GITHUB_OUTPUT
+
+            - name: Update AWS Lambda function
+              id: update-lambda
+              run: |
+                  aws lambda update-function-code --function-name ${{ env.LAMBDA_FUNCTION_NAME }} --image-uri ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest

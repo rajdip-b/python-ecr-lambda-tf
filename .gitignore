@@ -1,0 +1,6 @@
+.env
+.vscode/
+.idea/
+.terraform/
+.terraform*
+terraform.tfstate*
